@@ -40,6 +40,7 @@ def main():
   #check for div and h2
 
   nameCount = 0
+  f = open("purgeList.txt" , 'w+')
   for name in underScoreNameList:
     tempUrl = 'https://en.wikipedia.org/wiki/'+name
     print(tempUrl)
@@ -57,11 +58,11 @@ def main():
         count+=1
     try:
       if(len(tempList[0]) <=1):
-        purgeList.append(philosopherNameList[i])
+        f.write(name)
       else:
         newString = tempList[0].replace('\n', '')
         #tuple to add to db
-        dataToAdd = [(philosopherNameList[i], newString)]
+        dataToAdd = [(name, newString)]
         print(dataToAdd)
         c.executemany("INSERT INTO philosophers VALUES (?,?)", dataToAdd)
         nameBioDict[philosopherNameList[nameCount]] = newString
@@ -73,6 +74,7 @@ def main():
     nameCount+=1
     time.sleep(0.5)
   conn.commit()
+  f.close()
   print(nameBioDict)
 
 if __name__ == '__main__':

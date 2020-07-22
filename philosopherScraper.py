@@ -1,4 +1,5 @@
 import time
+import re
 import requests
 from bs4 import BeautifulSoup as bs
 import sqlite3
@@ -14,7 +15,6 @@ philosopherNameList = []
 underScoreNameList = []
 
 nameBioDict = {}
-purgeList = []
 
 conn = sqlite3.connect('philosophybot.db')
 c = conn.cursor()
@@ -33,49 +33,49 @@ def main():
         underScoreNameList.append(modName)
         philosopherNameList.append(name) 
 
+  nameList = [] 
+  underNameList = []
+  for i in philosopherNameList:
+    if(i != 'Article' and  i != 'Category' and i !='Glossary' and i !='Outline' and i !='Portal'):
+      nameList.append(i)
+ 
+  for i in philosopherNameList:
+    if(i != 'Article' and i != 'Category' and i !='Glossary' and i !='Outline' and i !='Portal'):
+      underNameList.append(i)
 
-  del philosopherNameList[0:5]
-  del underScoreNameList[0:5]
-
-  #check for div and h2
 
   nameCount = 0
-  f = open("purgeList.txt" , 'w+')
-  for name in underScoreNameList:
+  for name in underNameList:
     tempUrl = 'https://en.wikipedia.org/wiki/'+name
     print(tempUrl)
     tempList = []
     bioPage = requests.get(tempUrl).text
     soup2 = bs(bioPage, 'html.parser')
 
-    bio = soup2.select('#mw-content-text .mw-parser-output p')
+    nameConvert = name.split('_')[0]
+    bio = soup2.select('#mw-content-text .mw-parser-output > p')
     count = 0
+    
     for p in bio:
-      if(count> 0):
-        break
-      else:
-        tempList.append(p.getText())
-        count+=1
-    try:
-      if(len(tempList[0]) <=1):
-        f.write(name)
-      else:
-        newString = tempList[0].replace('\n', '')
-        #tuple to add to db
-        dataToAdd = [(name, newString)]
-        print(dataToAdd)
-        c.executemany("INSERT INTO philosophers VALUES (?,?)", dataToAdd)
-        nameBioDict[philosopherNameList[nameCount]] = newString
-    except:
-     print("no bio " + name)
-     philosopherNameList.pop(nameCount)
-     underScoreNameList.remove(name)
-
+      try:
+        bioString = str(p)
+        if(count> 0):
+          break
+        else:
+          if(nameConvert in bioString):
+            bioText = p.getText()
+            bioTextNewLine = bioText.replace('\n', '')
+            finishedText = re.sub(r'[[0-9]]*', '', bioTextNewLine)
+            dataToAdd = [(nameList[nameCount], finishedText)]
+            print(dataToAdd)
+            print()
+            print()
+            c.executemany("INSERT INTO philosophers VALUES (?,?)", dataToAdd)
+            count+=1
+      except:
+         print("no bio " + name)
     nameCount+=1
     time.sleep(0.5)
   conn.commit()
-  f.close()
-  print(nameBioDict)
-
 if __name__ == '__main__':
   main()
